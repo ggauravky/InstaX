@@ -24,7 +24,7 @@ function CreatePost() {
 
     try{
       const result = await createPost(content,imageUrl);
-      if (result.success) {
+      if (result?.success) {
         //reset the form
         setContent("");
         setImageUrl("");
@@ -52,7 +52,7 @@ function CreatePost() {
             </Avatar>
             <Textarea
               placeholder="What's on your mind?"
-              className="min-h-[100px] resize-none border-none focus-visible:ring-0 p-0 text-base"
+              className="min-h-[100px] flex-1 resize-none rounded-md border border-border bg-muted/30 px-3 py-2 text-base focus-visible:ring-1 focus-visible:ring-ring"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               disabled={isPosting}

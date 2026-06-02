@@ -93,13 +93,13 @@ function ProfilePageClient({
   const formattedDate = format(new Date(user.createdAt), "MMMM yyyy");
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-1 gap-6">
-        <div className="w-full max-w-md mx-auto">
+        <div className="w-full max-w-lg mx-auto">
           <Card className="bg-card">
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center">
-                <Avatar className="mx-auto aspect-square h-[96px] w-[96px] overflow-hidden rounded-full ring-1 ring-border/50 ring-offset-2 ring-offset-background sm:h-[120px] sm:w-[120px] lg:h-[140px] lg:w-[140px]">
+                <Avatar className="w-24 h-24">
                   <AvatarImage src={user.image ?? "/avatar.png"} />
                 </Avatar>
                 <h1 className="mt-4 text-2xl font-bold">{user.name ?? user.username}</h1>
@@ -127,30 +127,25 @@ function ProfilePageClient({
                 </div>
 
                 {/* "FOLLOW & EDIT PROFILE" BUTTONS */}
-                <div className="mt-4 flex w-full justify-center">
-                  {!currentUser ? (
-                    <SignInButton mode="modal">
-                      <Button className="min-w-[160px]">Follow</Button>
-                    </SignInButton>
-                  ) : isOwnProfile ? (
-                    <Button
-                      className="min-w-[180px]"
-                      onClick={() => setShowEditDialog(true)}
-                    >
-                      <EditIcon className="size-4 mr-2" />
-                      Edit Profile
-                    </Button>
-                  ) : (
-                    <Button
-                      className="min-w-[160px]"
-                      onClick={handleFollow}
-                      disabled={isUpdatingFollow}
-                      variant={isFollowing ? "outline" : "default"}
-                    >
-                      {isFollowing ? "Unfollow" : "Follow"}
-                    </Button>
-                  )}
-                </div>
+                {!currentUser ? (
+                  <SignInButton mode="modal">
+                    <Button className="w-full mt-4">Follow</Button>
+                  </SignInButton>
+                ) : isOwnProfile ? (
+                  <Button className="w-full mt-4" onClick={() => setShowEditDialog(true)}>
+                    <EditIcon className="size-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full mt-4"
+                    onClick={handleFollow}
+                    disabled={isUpdatingFollow}
+                    variant={isFollowing ? "outline" : "default"}
+                  >
+                    {isFollowing ? "Unfollow" : "Follow"}
+                  </Button>
+                )}
 
                 {/* LOCATION & WEBSITE */}
                 <div className="w-full mt-6 space-y-2 text-sm">
@@ -186,27 +181,24 @@ function ProfilePageClient({
         </div>
 
         <Tabs defaultValue="posts" className="w-full">
-          <div className="rounded-lg border bg-card/50 p-2">
-            <TabsList
-              variant="line"
-              className="w-full justify-center gap-6 border-b border-border/60 bg-transparent px-2 py-1"
+          <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
+            <TabsTrigger
+              value="posts"
+              className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary
+               data-[state=active]:bg-transparent px-6 font-semibold"
             >
-              <TabsTrigger
-                value="posts"
-                className="flex items-center gap-2 rounded-none px-4 py-2 font-semibold"
-              >
-                <FileTextIcon className="size-4" />
-                Posts
-              </TabsTrigger>
-              <TabsTrigger
-                value="likes"
-                className="flex items-center gap-2 rounded-none px-4 py-2 font-semibold"
-              >
-                <HeartIcon className="size-4" />
-                Likes
-              </TabsTrigger>
-            </TabsList>
-          </div>
+              <FileTextIcon className="size-4" />
+              Posts
+            </TabsTrigger>
+            <TabsTrigger
+              value="likes"
+              className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary
+               data-[state=active]:bg-transparent px-6 font-semibold"
+            >
+              <HeartIcon className="size-4" />
+              Likes
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="posts" className="mt-6">
             <div className="space-y-6">
@@ -230,7 +222,7 @@ function ProfilePageClient({
         </Tabs>
 
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="w-[95vw] max-w-[95vw] max-h-[90vh] overflow-y-auto p-4 sm:w-[90vw] sm:max-w-[90vw] sm:p-6 lg:w-[600px] lg:max-w-[600px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Edit Profile</DialogTitle>
             </DialogHeader>

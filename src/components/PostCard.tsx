@@ -14,8 +14,7 @@ import { HeartIcon, LogInIcon, MessageCircleIcon, SendIcon } from "lucide-react"
 import { Textarea } from "./ui/textarea";
 
 type GetPostsResult = Awaited<ReturnType<typeof getPosts>>;
-type Posts = Extract<GetPostsResult, { posts: unknown }>["posts"];
-type Post = Posts extends Array<infer Item> ? Item : never;
+type Post = GetPostsResult[number];
 
 function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
   const { user } = useUser();

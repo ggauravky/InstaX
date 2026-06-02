@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/TheamProvider";
@@ -7,20 +7,20 @@ import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/sidebar";
 import { Toaster } from "react-hot-toast";
 
-
-const geistSans = Geist({
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  weight: "100 900",
 });
-
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: "100 900",
 });
 
 export const metadata: Metadata = {
-  title: "InstaX",
-  description: "A modern social media platform built with Next.js , Prisma and TypeScript.",
+  title: "Socially",
+  description: "A modern social media application powered by Next.js",
 };
 
 export default function RootLayout({
@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-     <ClerkProvider>
+    <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ThemeProvider

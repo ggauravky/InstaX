@@ -31,7 +31,7 @@ export function DeleteAlertDialog({ isDeleting, onDelete }: DeleteAlertDialogPro
           Delete
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent size="sm">
+      <AlertDialogContent className="sm:max-w-sm">
         <AlertDialogHeader>
           <AlertDialogTitle>Delete post?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -40,12 +40,10 @@ export function DeleteAlertDialog({ isDeleting, onDelete }: DeleteAlertDialogPro
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            disabled={isDeleting}
-            onClick={onDelete}
-          >
-            {isDeleting ? "Deleting..." : "Delete"}
+          <AlertDialogAction asChild>
+            <Button variant="destructive" disabled={isDeleting} onClick={onDelete}>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

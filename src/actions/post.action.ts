@@ -4,24 +4,24 @@ import prisma from "@/lib/prisma";
 import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
 
-export async function createPost(content: string, imageUrl: string) {
+export async function createPost(content: string, image: string) {
   try {
     const userId = await getDbUserId();
 
     if (!userId) return;
 
     const post = await prisma.post.create({
-      data:{
+      data: {
         content,
-        image: imageUrl,
-        authorId:userId,
+        image,
+        authorId: userId,
       },
     });
 
-    revalidatePath("/");  // revalidate the home page to show the new post
+    revalidatePath("/"); // purge the cache for the home page
     return { success: true, post };
   } catch (error) {
-    console.error("Error creating post:", error);
+    console.error("Failed to create post:", error);
     return { success: false, error: "Failed to create post" };
   }
 }
@@ -29,46 +29,51 @@ export async function createPost(content: string, imageUrl: string) {
 export async function getPosts() {
   try {
     const posts = await prisma.post.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
       include: {
         author: {
           select: {
-            id:true,
+            id: true,
             name: true,
             image: true,
-            username: true
-          }
+            username: true,
+          },
         },
         comments: {
           include: {
             author: {
               select: {
                 id: true,
-                name: true,
+                username: true,
                 image: true,
-                username: true
-              }
-            }
+                name: true,
+              },
+            },
           },
-          orderBy: { createdAt: "asc" }
+          orderBy: {
+            createdAt: "asc",
+          },
         },
         likes: {
           select: {
-            userId: true
+            userId: true,
           },
         },
         _count: {
           select: {
+            likes: true,
             comments: true,
-            likes: true
-          }
-        }
+          },
+        },
       },
     });
-    return { success: true, posts };
+
+    return posts;
   } catch (error) {
-    console.error("Error fetching posts:", error);
-    return { success: false, error: "Failed to fetch posts" };
+    console.log("Error in getPosts", error);
+    throw new Error("Failed to fetch posts");
   }
 }
 

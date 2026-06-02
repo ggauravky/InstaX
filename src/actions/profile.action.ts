@@ -7,8 +7,10 @@ import { getDbUserId } from "./user.action";
 
 export async function getProfileByUsername(username: string) {
   try {
+    if (!username) return null;
+
     const user = await prisma.user.findUnique({
-      where: { username: username },
+      where: { username },
       select: {
         id: true,
         name: true,

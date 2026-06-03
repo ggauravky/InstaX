@@ -4,6 +4,8 @@ import { NotificationsSkeleton } from "@/components/NotificationSkeleton";
 import { Suspense } from "react";
 import { NotificationsClient } from "./NotificationsClient";
 
+export const dynamic = "force-dynamic";
+
 // This is a Server Component — no "use client" directive
 async function NotificationsPage() {
   const notifications = await getNotifications();

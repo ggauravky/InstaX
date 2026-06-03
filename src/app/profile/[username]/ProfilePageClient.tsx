@@ -336,10 +336,8 @@ function ProfilePageClient({
 
   // Memoized derived values — not recomputed on every render
   const isOwnProfile = useMemo(
-    () =>
-      currentUser?.username === user.username ||
-      currentUser?.emailAddresses[0].emailAddress.split("@")[0] === user.username,
-    [currentUser, user.username]
+    () => currentUser?.id === user.clerkId,
+    [currentUser?.id, user.clerkId]
   );
 
   const formattedDate = useMemo(

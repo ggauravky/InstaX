@@ -16,7 +16,11 @@ import { useAuth, SignInButton, SignOutButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 
-function MobileNavbar() {
+interface MobileNavbarProps {
+  dbUsername: string | null;
+}
+
+function MobileNavbar({ dbUsername }: MobileNavbarProps) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { isSignedIn } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -61,7 +65,10 @@ function MobileNavbar() {
                   </Link>
                 </Button>
                 <Button variant="ghost" className="flex items-center gap-3 justify-start" asChild>
-                  <Link href="/profile">
+                  <Link
+                    href={dbUsername ? `/profile/${dbUsername}` : "/profile"}
+                    onClick={() => setShowMobileMenu(false)}
+                  >
                     <UserIcon className="w-4 h-4" />
                     Profile
                   </Link>

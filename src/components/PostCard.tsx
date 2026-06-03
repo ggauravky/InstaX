@@ -122,15 +122,13 @@ const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
             </div>
           </div>
 
-          {/* POST IMAGE — next/image for UploadThing CDN (works perfectly) */}
+          {/* POST IMAGE */}
           {post.image && (
-            <div className="relative w-full overflow-hidden rounded-lg" style={{ aspectRatio: "16/9" }}>
-              <Image
+            <div className="rounded-lg overflow-hidden border border-border/10">
+              <img
                 src={post.image}
                 alt="Post content"
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 600px, 600px"
-                className="object-cover"
+                className="w-full h-auto max-h-[600px] object-contain"
                 loading="lazy"
               />
             </div>

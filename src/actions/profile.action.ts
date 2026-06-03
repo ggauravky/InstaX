@@ -23,6 +23,7 @@ export async function getProfileByUsername(username: string) {
         location: true,
         website: true,
         createdAt: true,
+        clerkId: true,
         _count: {
           select: {
             followers: true,

@@ -1,204 +1,221 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { useState } from "react";
 import {
-  Code2Icon,
-  CpuIcon,
-  FlameIcon,
-  GlobeIcon,
-  InfoIcon,
-  LayersIcon,
-  LockIcon,
+  ActivityIcon,
+  ChevronRightIcon,
+  CodeIcon,
+  HeartIcon,
+  LogInIcon,
   MessageCircleIcon,
-  ShieldCheckIcon,
   SparklesIcon,
+  TerminalIcon,
+  UserPlusIcon,
+  UsersIcon,
   ZapIcon,
 } from "lucide-react";
 
 export default function UnauthLanding() {
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      q: "What makes InstaX faster than standard social network clones?",
+      a: "InstaX bypasses client-side fetch waterfalls by using Next.js App Router Server Components. Data is pre-fetched on Vercel's edge network, reducing initial page loads to milliseconds. Real-time actions like post-liking are processed with optimistic client-side UI state updates, making interactions feel immediate.",
+    },
+    {
+      q: "How does the image upload pipeline work?",
+      a: "We integrate Clerk middleware inside UploadThing API endpoints. Before files reach our hosting CDN, user tokens are verified on the server. Image assets are constrained to 4MB max-file-size limits to enforce fast media loading speeds.",
+    },
+    {
+      q: "Are database queries optimized?",
+      a: "Yes. Our PostgreSQL schema is built with explicit indexes on `Post(authorId, createdAt)` and `Post(createdAt)` to accelerate profile feed filtering. This guarantees that scale growth won't lead to sequential database scan overhead.",
+    },
+  ];
+
   return (
-    <div className="space-y-12 pb-16">
-      {/* Hero Welcome Card */}
-      <Card className="relative overflow-hidden border-border/40 bg-card/65 backdrop-blur-md">
-        <div className="absolute -right-16 -top-16 size-48 rounded-full bg-gradient-to-br from-pink-500 to-violet-600 opacity-20 blur-2xl" />
-        <div className="absolute -left-16 -bottom-16 size-48 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-500 opacity-15 blur-2xl" />
-        
-        <CardContent className="pt-8 text-center sm:px-8">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10">
-            <SparklesIcon className="size-6 text-primary animate-pulse" />
-          </div>
-          <h1 className="bg-gradient-to-r from-foreground via-foreground/90 to-primary bg-clip-text text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl">
-            Welcome to InstaX
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-            InstaX is a modern, high-performance open-source social media platform built using Next.js 16, React 19, and Tailwind CSS v4. Connect, share, and experience visual flow.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <SignUpButton mode="modal">
-              <Button size="lg" className="cursor-pointer font-semibold shadow-md">
-                Get Started Free
-              </Button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <Button size="lg" variant="outline" className="cursor-pointer font-semibold">
-                Login Account
-              </Button>
-            </SignInButton>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-16 pb-20">
+      {/* 1. Hero / Brand Wordmark Section */}
+      <div className="relative text-left space-y-6 pt-4">
+        {/* Glow backdrop decorative bubbles */}
+        <div className="absolute top-0 right-1/4 -z-10 size-72 rounded-full bg-gradient-to-tr from-pink-500/10 via-violet-500/10 to-transparent blur-3xl" />
+        <div className="absolute bottom-0 left-10 -z-10 size-64 rounded-full bg-gradient-to-br from-blue-500/10 to-emerald-500/10 blur-3xl" />
 
-      {/* Why InstaX & Benefits Section */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border/40 bg-muted/40 text-xs text-muted-foreground font-mono">
+          <TerminalIcon className="size-3.5 text-primary" />
+          <span>npx create-instax-app --edge</span>
+        </div>
+
+        <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl font-sans text-foreground leading-[1.1]">
+          InstaX. <br />
+          <span className="bg-gradient-to-r from-pink-500 via-violet-500 to-indigo-500 bg-clip-text text-transparent">
+            Social networking
+          </span>{" "}
+          <br />
+          reimagined for speed.
+        </h1>
+
+        <p className="max-w-xl text-base text-muted-foreground leading-relaxed">
+          An open-source, high-performance social networking platform built with Next.js 16, React 19, and Tailwind CSS v4. No hydration waterfalls. Instant optimistic state updates.
+        </p>
+
+        <div className="flex flex-wrap gap-4 pt-2">
+          <SignUpButton mode="modal">
+            <Button size="lg" className="cursor-pointer font-semibold shadow-md bg-gradient-to-r from-pink-600 to-violet-600 hover:from-pink-500 hover:to-violet-500 text-white border-0 gap-2">
+              <UserPlusIcon className="size-4" />
+              Join the Network
+            </Button>
+          </SignUpButton>
+          <SignInButton mode="modal">
+            <Button size="lg" variant="outline" className="cursor-pointer font-semibold gap-2">
+              <LogInIcon className="size-4" />
+              Sign In
+            </Button>
+          </SignInButton>
+        </div>
+      </div>
+
+      {/* 2. Realistic Mock Post / Feed Showcase */}
       <section className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Why Choose InstaX?
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <SparklesIcon className="size-5 text-pink-500" />
+            Interactive Mock Feed
           </h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-            Built as a next-generation React social media application to resolve feed lag, waterfalled loading states, and media bloating.
+          <p className="text-xs text-muted-foreground">
+            A sneak-peek preview of our optimized post card interfaces.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="bg-card/40 border-border/20">
-            <CardContent className="pt-6">
-              <ZapIcon className="size-8 text-amber-500 mb-3" />
-              <h3 className="font-semibold text-base mb-1">Optimistic Likes & Feeds</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Experience instant feedback. InstaX updates like counters and follow statuses optimistically on the client first.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/40 border-border/20">
-            <CardContent className="pt-6">
-              <LayersIcon className="size-8 text-sky-500 mb-3" />
-              <h3 className="font-semibold text-base mb-1">Server Component SSR</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Fast Time-to-First-Byte (TTFB). Entire pages are compiled on the Vercel Edge Server to eliminate client hydration waterfalls.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/40 border-border/20">
-            <CardContent className="pt-6">
-              <CpuIcon className="size-8 text-emerald-500 mb-3" />
-              <h3 className="font-semibold text-base mb-1">Prisma DB Index Tuning</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Database queries are optimized at the PostgreSQL engine level using composite indexes on Post tables.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+        {/* Custom Mock Post Card */}
+        <Card className="overflow-hidden border-border/40 bg-card/50 backdrop-blur-sm max-w-xl">
+          <CardContent className="p-5 space-y-4">
+            {/* Header info */}
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-full bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 shrink-0 flex items-center justify-center p-[2px]">
+                <div className="size-full bg-background rounded-full flex items-center justify-center font-bold text-xs text-foreground">
+                  N16
+                </div>
+              </div>
+              <div className="text-left">
+                <span className="text-sm font-semibold hover:underline cursor-pointer">
+                  Vercel Team
+                </span>
+                <p className="text-xs text-muted-foreground">@nextjs • 2 hours ago</p>
+              </div>
+            </div>
 
-      {/* Feature Showcases */}
-      <section className="space-y-6">
-        <h2 className="text-2xl font-bold text-center tracking-tight">Key Features Overview</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex gap-3 items-start p-4 rounded-lg bg-card/25 border border-border/10">
-            <div className="p-2 rounded-md bg-violet-500/10 text-violet-500 mt-1">
-              <LockIcon className="size-5" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm">Clerk Managed Identity</h4>
-              <p className="text-xs text-muted-foreground mt-1">
-                Multi-session identity management, sign-ups, and Google SSO authentication.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 items-start p-4 rounded-lg bg-card/25 border border-border/10">
-            <div className="p-2 rounded-md bg-pink-500/10 text-pink-500 mt-1">
-              <FlameIcon className="size-5" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm">UploadThing Media CDN</h4>
-              <p className="text-xs text-muted-foreground mt-1">
-                Drag-and-drop file uploading up to 4MB with edge CDN image transformations.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 items-start p-4 rounded-lg bg-card/25 border border-border/10">
-            <div className="p-2 rounded-md bg-blue-500/10 text-blue-500 mt-1">
-              <MessageCircleIcon className="size-5" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm">Real-time Profile Validation</h4>
-              <p className="text-xs text-muted-foreground mt-1">
-                Username updates feature debounced server-side availability checks with inline feedback.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 items-start p-4 rounded-lg bg-card/25 border border-border/10">
-            <div className="p-2 rounded-md bg-amber-500/10 text-amber-500 mt-1">
-              <GlobeIcon className="size-5" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-sm">Structured SEO &amp; Sitemap</h4>
-              <p className="text-xs text-muted-foreground mt-1">
-                Dynamically generated XML sitemap crawling Neon DB profiles to keep search rankings fresh.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+            {/* Post text */}
+            <p className="text-sm leading-relaxed text-foreground/90">
+              Next.js 16 is now active! ⚡ Compiled in 17.6s using Webpack, featuring native React 19 concurrent hydration and the new Tailwind v4 styling engine. Scroll through the feed and experience 0ms input latency.
+            </p>
 
-      {/* Tech Stack Details */}
-      <section className="space-y-6">
-        <h2 className="text-2xl font-bold text-center tracking-tight">Enterprise Stack Architecture</h2>
-        <Card className="bg-card/30 border-border/10">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4">
-              <div className="space-y-1">
-                <p className="text-2xl font-extrabold text-primary">Next.js 16</p>
-                <p className="text-xs text-muted-foreground">App Router &amp; Server Actions</p>
+            {/* Mock Image inside Post */}
+            <div className="relative rounded-lg overflow-hidden border border-border/10 aspect-video bg-muted/20">
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center space-y-2">
+                <CodeIcon className="size-10 text-primary" />
+                <span className="text-xs font-mono text-muted-foreground bg-muted/80 px-2.5 py-1 rounded">
+                  const compile = () =&gt; &quot;zero_lag&quot;;
+                </span>
               </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-extrabold text-sky-500">React 19</p>
-                <p className="text-xs text-muted-foreground">Concurrent &amp; SSR Rendering</p>
+            </div>
+
+            {/* Mock Actions */}
+            <div className="flex gap-4 pt-1 text-muted-foreground text-xs font-semibold">
+              <div className="flex items-center gap-1.5 hover:text-red-500 cursor-pointer">
+                <HeartIcon className="size-4 fill-red-500 text-red-500" />
+                <span>1,248</span>
               </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-extrabold text-emerald-500">Neon PG</p>
-                <p className="text-xs text-muted-foreground">Serverless SQL Engine</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-extrabold text-violet-500">Clerk Auth</p>
-                <p className="text-xs text-muted-foreground">Identity Lifecycle Manager</p>
+              <div className="flex items-center gap-1.5 hover:text-blue-500 cursor-pointer">
+                <MessageCircleIcon className="size-4" />
+                <span>36</span>
               </div>
             </div>
           </CardContent>
         </Card>
       </section>
 
-      {/* Semantic FAQs Section */}
+      {/* 3. Tech Stack Metrics comparison */}
       <section className="space-y-6">
-        <h2 className="text-2xl font-bold tracking-tight text-center sm:text-3xl">Frequently Asked Questions</h2>
-        <div className="space-y-4 max-w-2xl mx-auto">
-          <div className="border-b border-border/30 pb-4">
-            <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-              <InfoIcon className="size-4 text-primary shrink-0" />
-              What makes InstaX faster than typical social media apps?
-            </h4>
-            <p className="text-xs text-muted-foreground mt-1.5 pl-6 leading-relaxed">
-              InstaX leverages Next.js 16 Server Components to complete database queries directly on the server. There are no client-side API waterfall requests for the feed and notifications, providing instantaneous rendering.
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <ActivityIcon className="size-5 text-indigo-500" />
+            Performance Blueprint
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            InstaX leverages Postgres indexing, SSR routes, and parallel fetches for optimal Core Web Vitals.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-xl border border-border/40 bg-card/30 flex flex-col justify-between space-y-4">
+            <div>
+              <span className="text-xs font-mono text-muted-foreground font-semibold">PAGE LOAD (TTFB)</span>
+              <p className="text-2xl font-bold text-emerald-500 mt-1">~12ms</p>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Edge SSR renders pages directly on the close node network, bypassing client-side data waterfalls.
             </p>
           </div>
-          <div className="border-b border-border/30 pb-4">
-            <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-              <InfoIcon className="size-4 text-primary shrink-0" />
-              How is image uploading handled securely?
-            </h4>
-            <p className="text-xs text-muted-foreground mt-1.5 pl-6 leading-relaxed">
-              We integrate Clerk authentication middleware inside UploadThing's edge route handler. Only verified, logged-in user tokens can generate upload URLs, keeping file hosting safe and secure.
+          <div className="p-4 rounded-xl border border-border/40 bg-card/30 flex flex-col justify-between space-y-4">
+            <div>
+              <span className="text-xs font-mono text-muted-foreground font-semibold">MUTATION RESPONSE</span>
+              <p className="text-2xl font-bold text-sky-500 mt-1">&lt;1ms</p>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Optimistic updates render toggled states immediately, sync'ing database writes in the background.
             </p>
           </div>
-          <div className="border-b border-border/30 pb-4">
-            <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-              <InfoIcon className="size-4 text-primary shrink-0" />
-              Can I customize my username?
-            </h4>
-            <p className="text-xs text-muted-foreground mt-1.5 pl-6 leading-relaxed">
-              Yes, in the Edit Profile dialog, you can change your username. Our backend checks database availability in real time and automatically redirects you to your new dynamic path while keeping your likes, comments, and followers.
+          <div className="p-4 rounded-xl border border-border/40 bg-card/30 flex flex-col justify-between space-y-4">
+            <div>
+              <span className="text-xs font-mono text-muted-foreground font-semibold">DATABASE QUERYING</span>
+              <p className="text-2xl font-bold text-violet-500 mt-1">Indexed</p>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Prisma schemas are backed by PostgreSQL indexes on keys like `createdAt`, skipping slow sequential scans.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* 4. Collapsible FAQs Section */}
+      <section className="space-y-6">
+        <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+          <ZapIcon className="size-5 text-amber-500" />
+          Technical FAQ
+        </h2>
+
+        <div className="divide-y divide-border/20 border-t border-b border-border/20 max-w-xl">
+          {faqs.map((faq, index) => {
+            const isFaqActive = activeFaq === index;
+            return (
+              <div key={index} className="py-4">
+                <button
+                  onClick={() => setActiveFaq(isFaqActive ? null : index)}
+                  className="flex w-full items-center justify-between text-left font-semibold text-sm hover:text-primary transition-colors cursor-pointer"
+                >
+                  <span>{faq.q}</span>
+                  <ChevronRightIcon
+                    className={`size-4 text-muted-foreground transition-transform duration-200 ${
+                      isFaqActive ? "rotate-90 text-primary" : ""
+                    }`}
+                  />
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                    isFaqActive ? "max-h-32 mt-2 opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {faq.a}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

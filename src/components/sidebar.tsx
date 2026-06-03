@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { getUserByClerkId } from "@/actions/user.action";
 import Link from "next/link";
 import { Separator } from "./ui/separator";
-import { LinkIcon, MapPinIcon } from "lucide-react";
+import { LinkIcon, MapPinIcon, LogInIcon, UserPlusIcon } from "lucide-react";
 
 async function Sidebar() {
   const authUser = await currentUser();
@@ -85,21 +85,26 @@ export default Sidebar;
 
 const UnAuthenticatedSidebar = () => (
   <div className="sticky top-20">
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-center text-xl font-semibold">Welcome Back!</CardTitle>
+    <Card className="border-border/40 bg-card/65 backdrop-blur-sm">
+      <CardHeader className="text-center pb-2">
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-primary/10">
+          <LogInIcon className="size-5 text-primary" />
+        </div>
+        <CardTitle className="text-xl font-bold tracking-tight">Welcome Back!</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-center text-muted-foreground mb-4">
-          Login to access your profile and connect with others.
+        <p className="text-center text-xs text-muted-foreground mb-4 leading-relaxed">
+          Log in to view post updates, comment on shared media, and follow creators.
         </p>
         <SignInButton mode="modal">
-          <Button className="w-full" variant="outline">
+          <Button className="w-full cursor-pointer gap-2" variant="outline">
+            <LogInIcon className="size-4" />
             Login
           </Button>
         </SignInButton>
         <SignUpButton mode="modal">
-          <Button className="w-full mt-2" variant="default">
+          <Button className="w-full mt-2 cursor-pointer gap-2" variant="default">
+            <UserPlusIcon className="size-4" />
             Sign Up
           </Button>
         </SignUpButton>

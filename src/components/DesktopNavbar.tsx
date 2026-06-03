@@ -1,4 +1,4 @@
-import { BellIcon, HomeIcon, UserIcon } from "lucide-react";
+import { BellIcon, HomeIcon, UserIcon, LogInIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { SignInButton, UserButton } from "@clerk/nextjs";
@@ -45,7 +45,10 @@ async function DesktopNavbar({ dbUsername }: DesktopNavbarProps) {
         </>
       ) : (
         <SignInButton mode="modal">
-          <Button variant="default">Sign In</Button>
+          <Button variant="default" className="cursor-pointer gap-2">
+            <LogInIcon className="size-4" />
+            Sign In
+          </Button>
         </SignInButton>
       )}
     </div>

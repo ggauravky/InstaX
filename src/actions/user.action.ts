@@ -13,10 +13,29 @@ export async function syncUser() {
 
     const existingUser = await prisma.user.findUnique({
       where: { clerkId: userId },
-      select: { id: true }, // Only fetch id — we only care if user exists
+      select: { id: true, name: true, image: true, username: true },
     });
 
-    if (existingUser) return existingUser;
+    const clerkName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+
+    if (existingUser) {
+      const nameChanged = existingUser.name !== clerkName;
+      const imageChanged = existingUser.image !== user.imageUrl;
+
+      if (nameChanged || imageChanged) {
+        const updatedUser = await prisma.user.update({
+          where: { clerkId: userId },
+          data: {
+            name: clerkName,
+            image: user.imageUrl,
+          },
+        });
+
+        return updatedUser;
+      }
+
+      return existingUser;
+    }
 
     const dbUser = await prisma.user.create({
       data: {

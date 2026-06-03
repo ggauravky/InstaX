@@ -8,6 +8,7 @@ import {
   MoonIcon,
   SunIcon,
   UserIcon,
+  LogInIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -82,7 +83,8 @@ function MobileNavbar({ dbUsername }: MobileNavbarProps) {
               </>
             ) : (
               <SignInButton mode="modal">
-                <Button variant="default" className="w-full">
+                <Button variant="default" className="w-full cursor-pointer gap-2">
+                  <LogInIcon className="size-4" />
                   Sign In
                 </Button>
               </SignInButton>

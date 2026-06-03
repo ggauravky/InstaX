@@ -32,7 +32,6 @@ const RESERVED_USERNAMES = new Set([
   "profile",
   "user",
   "users",
-  "instax",
   "moderator",
   "mod",
   "official",

@@ -48,10 +48,13 @@ model Post{
   updatedAt DateTime  @updatedAt
 
   // Relations
-  author User @relation(fields: [authorId],references: [id], onDelete: Cascade) // cascade delete means delete all posts if author is deleted
+  author User @relation(fields: [authorId],references: [id], onDelete: Cascade)
   comments Comment[]
   likes Like[]
   notifications Notification[]
+
+  @@index([authorId, createdAt]) // speeds up getUserPosts + feed ordering
+  @@index([createdAt])           // speeds up global feed (getPosts orderBy createdAt)
 }
 
 

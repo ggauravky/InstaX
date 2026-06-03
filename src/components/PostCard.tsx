@@ -2,11 +2,11 @@
 
 import { createComment, deletePost, getPosts, toggleLike } from "@/actions/post.action";
 import { SignInButton, useUser } from "@clerk/nextjs";
-import { useState } from "react";
+import Image from "next/image";
+import { memo, useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { Card, CardContent } from "./ui/card";
 import Link from "next/link";
-import { Avatar, AvatarImage } from "./ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 import { DeleteAlertDialog } from "./DeleteAlertDialog";
 import { Button } from "./ui/button";
@@ -16,32 +16,42 @@ import { Textarea } from "./ui/textarea";
 type GetPostsResult = Awaited<ReturnType<typeof getPosts>>;
 type Post = GetPostsResult[number];
 
-function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
+interface PostCardProps {
+  post: Post;
+  dbUserId: string | null;
+}
+
+// Wrapped in React.memo — prevents re-renders when unrelated posts change
+const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
   const { user } = useUser();
   const [newComment, setNewComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [hasLiked, setHasLiked] = useState(post.likes.some((like) => like.userId === dbUserId));
-  const [optimisticLikes, setOptmisticLikes] = useState(post._count.likes);
+  const [hasLiked, setHasLiked] = useState(
+    post.likes.some((like) => like.userId === dbUserId)
+  );
+  const [optimisticLikes, setOptimisticLikes] = useState(post._count.likes);
   const [showComments, setShowComments] = useState(false);
 
-  const handleLike = async () => {
+  // useCallback prevents new function references on every render
+  const handleLike = useCallback(async () => {
     if (isLiking) return;
     try {
       setIsLiking(true);
       setHasLiked((prev) => !prev);
-      setOptmisticLikes((prev) => prev + (hasLiked ? -1 : 1));
+      setOptimisticLikes((prev) => prev + (hasLiked ? -1 : 1));
       await toggleLike(post.id);
-    } catch (error) {
-      setOptmisticLikes(post._count.likes);
+    } catch {
+      // Revert optimistic update on failure
+      setOptimisticLikes(post._count.likes);
       setHasLiked(post.likes.some((like) => like.userId === dbUserId));
     } finally {
       setIsLiking(false);
     }
-  };
+  }, [isLiking, hasLiked, post.id, post._count.likes, post.likes, dbUserId]);
 
-  const handleAddComment = async () => {
+  const handleAddComment = useCallback(async () => {
     if (!newComment.trim() || isCommenting) return;
     try {
       setIsCommenting(true);
@@ -49,37 +59,51 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
       if (result?.success) {
         toast.success("Comment posted successfully");
         setNewComment("");
+      } else {
+        toast.error(result?.error ?? "Failed to add comment");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to add comment");
     } finally {
       setIsCommenting(false);
     }
-  };
+  }, [newComment, isCommenting, post.id]);
 
-  const handleDeletePost = async () => {
+  const handleDeletePost = useCallback(async () => {
     if (isDeleting) return;
     try {
       setIsDeleting(true);
       const result = await deletePost(post.id);
       if (result.success) toast.success("Post deleted successfully");
       else throw new Error(result.error);
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete post");
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, [isDeleting, post.id]);
+
+  const toggleComments = useCallback(
+    () => setShowComments((prev) => !prev),
+    []
+  );
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-4 sm:p-6">
         <div className="space-y-4">
           <div className="flex space-x-3 sm:space-x-4">
-            <Link href={`/profile/${post.author.username}`}>
-              <Avatar className="size-8 sm:w-10 sm:h-10">
-                <AvatarImage src={post.author.image ?? "/avatar.png"} />
-              </Avatar>
+            <Link href={`/profile/${post.author.username}`} prefetch={false}>
+              <div className="relative size-8 sm:size-10 shrink-0 overflow-hidden rounded-full">
+                <Image
+                  src={post.author.image ?? "/avatar.png"}
+                  alt={post.author.name ?? post.author.username}
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                  loading="lazy"
+                />
+              </div>
             </Link>
 
             {/* POST HEADER & TEXT CONTENT */}
@@ -89,28 +113,41 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                   <Link
                     href={`/profile/${post.author.username}`}
                     className="font-semibold truncate"
+                    prefetch={false}
                   >
                     {post.author.name}
                   </Link>
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Link href={`/profile/${post.author.username}`}>@{post.author.username}</Link>
+                    <Link href={`/profile/${post.author.username}`} prefetch={false}>
+                      @{post.author.username}
+                    </Link>
                     <span>•</span>
                     <span>{formatDistanceToNow(new Date(post.createdAt))} ago</span>
                   </div>
                 </div>
-                {/* Check if current user is the post author */}
+
                 {dbUserId === post.author.id && (
-                  <DeleteAlertDialog isDeleting={isDeleting} onDelete={handleDeletePost} />
+                  <DeleteAlertDialog
+                    isDeleting={isDeleting}
+                    onDelete={handleDeletePost}
+                  />
                 )}
               </div>
               <p className="mt-2 text-sm text-foreground break-words">{post.content}</p>
             </div>
           </div>
 
-          {/* POST IMAGE */}
+          {/* POST IMAGE — lazy loaded with next/image */}
           {post.image && (
-            <div className="rounded-lg overflow-hidden">
-              <img src={post.image} alt="Post content" className="w-full h-auto object-cover" />
+            <div className="relative w-full overflow-hidden rounded-lg" style={{ aspectRatio: "16/9" }}>
+              <Image
+                src={post.image}
+                alt="Post content"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 600px, 600px"
+                className="object-cover"
+                loading="lazy"
+              />
             </div>
           )}
 
@@ -125,11 +162,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
                 }`}
                 onClick={handleLike}
               >
-                {hasLiked ? (
-                  <HeartIcon className="size-5 fill-current" />
-                ) : (
-                  <HeartIcon className="size-5" />
-                )}
+                <HeartIcon className={`size-5 ${hasLiked ? "fill-current" : ""}`} />
                 <span>{optimisticLikes}</span>
               </Button>
             ) : (
@@ -145,7 +178,7 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               variant="ghost"
               size="sm"
               className="text-muted-foreground gap-2 hover:text-blue-500"
-              onClick={() => setShowComments((prev) => !prev)}
+              onClick={toggleComments}
             >
               <MessageCircleIcon
                 className={`size-5 ${showComments ? "fill-blue-500 text-blue-500" : ""}`}
@@ -158,12 +191,18 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
           {showComments && (
             <div className="space-y-4 pt-4 border-t">
               <div className="space-y-4">
-                {/* DISPLAY COMMENTS */}
                 {post.comments.map((comment) => (
                   <div key={comment.id} className="flex space-x-3">
-                    <Avatar className="size-8 flex-shrink-0">
-                      <AvatarImage src={comment.author.image ?? "/avatar.png"} />
-                    </Avatar>
+                    <div className="relative size-8 shrink-0 overflow-hidden rounded-full">
+                      <Image
+                        src={comment.author.image ?? "/avatar.png"}
+                        alt={comment.author.name ?? comment.author.username}
+                        fill
+                        sizes="32px"
+                        className="object-cover"
+                        loading="lazy"
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="font-medium text-sm">{comment.author.name}</span>
@@ -183,9 +222,16 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
 
               {user ? (
                 <div className="flex space-x-3">
-                  <Avatar className="size-8 flex-shrink-0">
-                    <AvatarImage src={user?.imageUrl || "/avatar.png"} />
-                  </Avatar>
+                  <div className="relative size-8 shrink-0 overflow-hidden rounded-full">
+                    <Image
+                      src={user.imageUrl || "/avatar.png"}
+                      alt={user.username ?? "You"}
+                      fill
+                      sizes="32px"
+                      className="object-cover"
+                      loading="lazy"
+                    />
+                  </div>
                   <div className="flex-1">
                     <Textarea
                       placeholder="Write a comment..."
@@ -228,5 +274,6 @@ function PostCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
       </CardContent>
     </Card>
   );
-}
+});
+
 export default PostCard;

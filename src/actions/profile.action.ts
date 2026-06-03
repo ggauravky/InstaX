@@ -4,6 +4,9 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getDbUserId } from "./user.action";
+import { validateUsernameFormat } from "@/lib/username";
+
+
 
 export async function getProfileByUsername(username: string) {
   try {
@@ -40,48 +43,23 @@ export async function getProfileByUsername(username: string) {
 export async function getUserPosts(userId: string) {
   try {
     const posts = await prisma.post.findMany({
-      where: {
-        authorId: userId,
-      },
+      where: { authorId: userId },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
-          },
+          select: { id: true, name: true, username: true, image: true },
         },
         comments: {
           include: {
             author: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-                image: true,
-              },
+              select: { id: true, name: true, username: true, image: true },
             },
           },
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: { createdAt: "asc" },
         },
-        likes: {
-          select: {
-            userId: true,
-          },
-        },
-        _count: {
-          select: {
-            likes: true,
-            comments: true,
-          },
-        },
+        likes: { select: { userId: true } },
+        _count: { select: { likes: true, comments: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
 
     return posts;
@@ -94,52 +72,23 @@ export async function getUserPosts(userId: string) {
 export async function getUserLikedPosts(userId: string) {
   try {
     const likedPosts = await prisma.post.findMany({
-      where: {
-        likes: {
-          some: {
-            userId,
-          },
-        },
-      },
+      where: { likes: { some: { userId } } },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
-          },
+          select: { id: true, name: true, username: true, image: true },
         },
         comments: {
           include: {
             author: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-                image: true,
-              },
+              select: { id: true, name: true, username: true, image: true },
             },
           },
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: { createdAt: "asc" },
         },
-        likes: {
-          select: {
-            userId: true,
-          },
-        },
-        _count: {
-          select: {
-            likes: true,
-            comments: true,
-          },
-        },
+        likes: { select: { userId: true } },
+        _count: { select: { likes: true, comments: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
 
     return likedPosts;
@@ -161,19 +110,89 @@ export async function updateProfile(formData: FormData) {
 
     const user = await prisma.user.update({
       where: { clerkId },
-      data: {
-        name,
-        bio,
-        location,
-        website,
-      },
+      data: { name, bio, location, website },
     });
 
-    revalidatePath("/profile");
+    revalidatePath(`/profile/${user.username}`);
     return { success: true, user };
   } catch (error) {
     console.error("Error updating profile:", error);
     return { success: false, error: "Failed to update profile" };
+  }
+}
+
+/**
+ * Updates the authenticated user's username.
+ *
+ * Validates format, uniqueness, and reserved words before saving.
+ * Returns success + new username (for client-side redirect), or an error string.
+ */
+export async function updateUsername(
+  newUsername: string
+): Promise<
+  | { success: true; newUsername: string; oldUsername: string }
+  | { success: false; error: string }
+> {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return { success: false, error: "You must be logged in." };
+
+    // 1. Format validation
+    const formatError = validateUsernameFormat(newUsername);
+    if (formatError) return { success: false, error: formatError };
+
+    const normalized = newUsername.trim().toLowerCase();
+
+    // 2. Get current user
+    const currentUser = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true, username: true },
+    });
+    if (!currentUser) return { success: false, error: "User not found." };
+
+    // No change?
+    if (currentUser.username.toLowerCase() === normalized) {
+      return { success: false, error: "That is already your username." };
+    }
+
+    // 3. Uniqueness check — race-condition safe via DB unique constraint
+    const existing = await prisma.user.findUnique({
+      where: { username: newUsername.trim() },
+      select: { id: true },
+    });
+    if (existing) {
+      return { success: false, error: "That username is already taken." };
+    }
+
+    // 4. Update
+    const updated = await prisma.user.update({
+      where: { id: currentUser.id },
+      data: { username: newUsername.trim() },
+      select: { username: true },
+    });
+
+    // 5. Revalidate old and new profile paths
+    revalidatePath(`/profile/${currentUser.username}`);
+    revalidatePath(`/profile/${updated.username}`);
+    revalidatePath("/");
+
+    return {
+      success: true,
+      newUsername: updated.username,
+      oldUsername: currentUser.username,
+    };
+  } catch (error: unknown) {
+    // Handle Prisma unique constraint violation (race condition)
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      return { success: false, error: "That username is already taken." };
+    }
+    console.error("Error updating username:", error);
+    return { success: false, error: "Failed to update username. Please try again." };
   }
 }
 
@@ -196,4 +215,19 @@ export async function isFollowing(userId: string) {
     console.error("Error checking follow status:", error);
     return false;
   }
+}
+
+/** Check if a username is available (for real-time validation in the UI) */
+export async function checkUsernameAvailability(
+  username: string
+): Promise<{ available: boolean; error?: string }> {
+  const formatError = validateUsernameFormat(username);
+  if (formatError) return { available: false, error: formatError };
+
+  const existing = await prisma.user.findUnique({
+    where: { username: username.trim() },
+    select: { id: true },
+  });
+
+  return { available: !existing };
 }

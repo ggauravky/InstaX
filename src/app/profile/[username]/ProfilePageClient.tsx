@@ -1,9 +1,11 @@
 "use client";
 
-import { getProfileByUsername, getUserPosts, updateProfile } from "@/actions/profile.action";
+import type { getProfileByUsername, getUserPosts } from "@/actions/profile.action";
+import { updateProfile, updateUsername, checkUsernameAvailability } from "@/actions/profile.action";
+import { validateUsernameFormat } from "@/lib/username";
 import { toggleFollow } from "@/actions/user.action";
 import PostCard from "@/components/PostCard";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -22,14 +24,18 @@ import { SignInButton, useUser } from "@clerk/nextjs";
 import { format } from "date-fns";
 import {
   CalendarIcon,
+  CheckCircle2Icon,
   EditIcon,
   FileTextIcon,
   HeartIcon,
+  Loader2Icon,
   LinkIcon,
   MapPinIcon,
+  XCircleIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 type User = Awaited<ReturnType<typeof getProfileByUsername>>;
 type Posts = Awaited<ReturnType<typeof getUserPosts>>;
@@ -40,6 +46,281 @@ interface ProfilePageClientProps {
   likedPosts: Posts;
   isFollowing: boolean;
 }
+
+// ─── Username field with real-time validation ────────────────────────────────
+
+interface UsernameFieldProps {
+  value: string;
+  currentUsername: string;
+  onChange: (v: string) => void;
+}
+
+const UsernameField = memo(function UsernameField({
+  value,
+  currentUsername,
+  onChange,
+}: UsernameFieldProps) {
+  const [status, setStatus] = useState<
+    "idle" | "checking" | "available" | "taken" | "invalid"
+  >("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const trimmed = value.trim();
+
+    // Same as current — no check needed
+    if (trimmed.toLowerCase() === currentUsername.toLowerCase()) {
+      setStatus("idle");
+      setErrorMsg("");
+      return;
+    }
+
+    if (!trimmed) {
+      setStatus("idle");
+      setErrorMsg("");
+      return;
+    }
+
+    // Client-side format check first (instant feedback, no server round-trip)
+    const formatErr = validateUsernameFormat(trimmed);
+    if (formatErr) {
+      setStatus("invalid");
+      setErrorMsg(formatErr);
+      return;
+    }
+
+    // Debounce the server uniqueness check
+    setStatus("checking");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const result = await checkUsernameAvailability(trimmed);
+      if (result.available) {
+        setStatus("available");
+        setErrorMsg("");
+      } else {
+        setStatus("taken");
+        setErrorMsg(result.error ?? "Username not available");
+      }
+    }, 450);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [value, currentUsername]);
+
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor="edit-username">Username</Label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm select-none">
+          @
+        </span>
+        <Input
+          id="edit-username"
+          name="username"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={currentUsername}
+          className="pl-7 pr-8"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {/* Status icon */}
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          {status === "checking" && (
+            <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+          )}
+          {status === "available" && (
+            <CheckCircle2Icon className="size-4 text-green-500" />
+          )}
+          {(status === "taken" || status === "invalid") && (
+            <XCircleIcon className="size-4 text-destructive" />
+          )}
+        </div>
+      </div>
+      {(status === "taken" || status === "invalid") && errorMsg && (
+        <p className="text-xs text-destructive mt-1">{errorMsg}</p>
+      )}
+      {status === "available" && (
+        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+          ✓ Username is available
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground">
+        3–30 characters. Letters, numbers, underscores only.
+      </p>
+    </div>
+  );
+});
+
+// ─── Edit Profile Dialog ─────────────────────────────────────────────────────
+
+interface EditDialogProps {
+  user: NonNullable<User>;
+  open: boolean;
+  onClose: () => void;
+}
+
+const EditDialog = memo(function EditDialog({ user, open, onClose }: EditDialogProps) {
+  const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+  const [usernameValue, setUsernameValue] = useState(user.username);
+  const [form, setForm] = useState({
+    name: user.name || "",
+    bio: user.bio || "",
+    location: user.location || "",
+    website: user.website || "",
+  });
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setForm({
+        name: user.name || "",
+        bio: user.bio || "",
+        location: user.location || "",
+        website: user.website || "",
+      });
+      setUsernameValue(user.username);
+    }
+  }, [open, user]);
+
+  const handleFieldChange = useCallback(
+    (field: keyof typeof form, value: string) => {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
+
+  const handleSave = useCallback(async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
+    try {
+      const trimmedUsername = usernameValue.trim();
+      const usernameChanged =
+        trimmedUsername.toLowerCase() !== user.username.toLowerCase();
+
+      // Save profile fields
+      const formData = new FormData();
+      Object.entries(form).forEach(([k, v]) => formData.append(k, v));
+      const profileResult = await updateProfile(formData);
+
+      if (!profileResult.success) {
+        toast.error(profileResult.error ?? "Failed to update profile");
+        return;
+      }
+
+      // Save username if changed
+      if (usernameChanged && trimmedUsername) {
+        const usernameResult = await updateUsername(trimmedUsername);
+        if (!usernameResult.success) {
+          toast.error(usernameResult.error ?? "Failed to update username");
+          return;
+        }
+        toast.success("Profile & username updated!");
+        onClose();
+        // Redirect to new username URL
+        router.push(`/profile/${usernameResult.newUsername}`);
+        return;
+      }
+
+      toast.success("Profile updated successfully!");
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isSaving, usernameValue, user.username, form, onClose, router]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Profile</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Username */}
+          <UsernameField
+            value={usernameValue}
+            currentUsername={user.username}
+            onChange={setUsernameValue}
+          />
+
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-name">Name</Label>
+            <Input
+              id="edit-name"
+              name="name"
+              value={form.name}
+              onChange={(e) => handleFieldChange("name", e.target.value)}
+              placeholder="Your name"
+            />
+          </div>
+
+          {/* Bio */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-bio">Bio</Label>
+            <Textarea
+              id="edit-bio"
+              name="bio"
+              value={form.bio}
+              onChange={(e) => handleFieldChange("bio", e.target.value)}
+              className="min-h-[100px] resize-none"
+              placeholder="Tell us about yourself"
+            />
+          </div>
+
+          {/* Location */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-location">Location</Label>
+            <Input
+              id="edit-location"
+              name="location"
+              value={form.location}
+              onChange={(e) => handleFieldChange("location", e.target.value)}
+              placeholder="Where are you based?"
+            />
+          </div>
+
+          {/* Website */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-website">Website</Label>
+            <Input
+              id="edit-website"
+              name="website"
+              value={form.website}
+              onChange={(e) => handleFieldChange("website", e.target.value)}
+              placeholder="https://yourwebsite.com"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-2">
+          <DialogClose asChild>
+            <Button variant="outline" disabled={isSaving}>
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2Icon className="size-4 mr-2 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
+// ─── Main Profile Page ───────────────────────────────────────────────────────
 
 function ProfilePageClient({
   isFollowing: initialIsFollowing,
@@ -52,87 +333,93 @@ function ProfilePageClient({
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isUpdatingFollow, setIsUpdatingFollow] = useState(false);
 
-  const [editForm, setEditForm] = useState({
-    name: user.name || "",
-    bio: user.bio || "",
-    location: user.location || "",
-    website: user.website || "",
-  });
+  // Memoized derived values — not recomputed on every render
+  const isOwnProfile = useMemo(
+    () =>
+      currentUser?.username === user.username ||
+      currentUser?.emailAddresses[0].emailAddress.split("@")[0] === user.username,
+    [currentUser, user.username]
+  );
 
-  const handleEditSubmit = async () => {
-    const formData = new FormData();
-    Object.entries(editForm).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+  const formattedDate = useMemo(
+    () => format(new Date(user.createdAt), "MMMM yyyy"),
+    [user.createdAt]
+  );
 
-    const result = await updateProfile(formData);
-    if (result.success) {
-      setShowEditDialog(false);
-      toast.success("Profile updated successfully");
-    }
-  };
-
-  const handleFollow = async () => {
-    if (!currentUser) return;
-
+  const handleFollow = useCallback(async () => {
+    if (!currentUser || isUpdatingFollow) return;
     try {
       setIsUpdatingFollow(true);
+      setIsFollowing((prev) => !prev); // Optimistic update
       await toggleFollow(user.id);
-      setIsFollowing(!isFollowing);
-    } catch (error) {
+    } catch {
+      setIsFollowing(isFollowing); // Revert on error
       toast.error("Failed to update follow status");
     } finally {
       setIsUpdatingFollow(false);
     }
-  };
+  }, [currentUser, isUpdatingFollow, isFollowing, user.id]);
 
-  const isOwnProfile =
-    currentUser?.username === user.username ||
-    currentUser?.emailAddresses[0].emailAddress.split("@")[0] === user.username;
-
-  const formattedDate = format(new Date(user.createdAt), "MMMM yyyy");
+  const openEdit = useCallback(() => setShowEditDialog(true), []);
+  const closeEdit = useCallback(() => setShowEditDialog(false), []);
 
   return (
     <div className="max-w-3xl mx-auto">
       <div className="grid grid-cols-1 gap-6">
+        {/* Profile Card */}
         <div className="w-full max-w-lg mx-auto">
           <Card className="bg-card">
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={user.image ?? "/avatar.png"} />
-                </Avatar>
+                {/* Profile Avatar — priority since it's above the fold */}
+                <div className="relative w-24 h-24 overflow-hidden rounded-full ring-2 ring-border/40">
+                  <Image
+                    src={user.image ?? "/avatar.png"}
+                    alt={user.name ?? user.username}
+                    fill
+                    sizes="96px"
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+
                 <h1 className="mt-4 text-2xl font-bold">{user.name ?? user.username}</h1>
                 <p className="text-muted-foreground">@{user.username}</p>
-                <p className="mt-2 text-sm">{user.bio}</p>
+                {user.bio && <p className="mt-2 text-sm">{user.bio}</p>}
 
                 {/* PROFILE STATS */}
                 <div className="w-full mt-6">
                   <div className="flex justify-between mb-4">
                     <div>
-                      <div className="font-semibold">{user._count.following.toLocaleString()}</div>
+                      <div className="font-semibold">
+                        {user._count.following.toLocaleString()}
+                      </div>
                       <div className="text-sm text-muted-foreground">Following</div>
                     </div>
                     <Separator orientation="vertical" />
                     <div>
-                      <div className="font-semibold">{user._count.followers.toLocaleString()}</div>
+                      <div className="font-semibold">
+                        {user._count.followers.toLocaleString()}
+                      </div>
                       <div className="text-sm text-muted-foreground">Followers</div>
                     </div>
                     <Separator orientation="vertical" />
                     <div>
-                      <div className="font-semibold">{user._count.posts.toLocaleString()}</div>
+                      <div className="font-semibold">
+                        {user._count.posts.toLocaleString()}
+                      </div>
                       <div className="text-sm text-muted-foreground">Posts</div>
                     </div>
                   </div>
                 </div>
 
-                {/* "FOLLOW & EDIT PROFILE" BUTTONS */}
+                {/* FOLLOW / EDIT PROFILE BUTTONS */}
                 {!currentUser ? (
                   <SignInButton mode="modal">
                     <Button className="w-full mt-4">Follow</Button>
                   </SignInButton>
                 ) : isOwnProfile ? (
-                  <Button className="w-full mt-4" onClick={() => setShowEditDialog(true)}>
+                  <Button className="w-full mt-4" onClick={openEdit}>
                     <EditIcon className="size-4 mr-2" />
                     Edit Profile
                   </Button>
@@ -143,7 +430,13 @@ function ProfilePageClient({
                     disabled={isUpdatingFollow}
                     variant={isFollowing ? "outline" : "default"}
                   >
-                    {isFollowing ? "Unfollow" : "Follow"}
+                    {isUpdatingFollow ? (
+                      <Loader2Icon className="size-4 animate-spin" />
+                    ) : isFollowing ? (
+                      "Unfollow"
+                    ) : (
+                      "Follow"
+                    )}
                   </Button>
                 )}
 
@@ -151,18 +444,20 @@ function ProfilePageClient({
                 <div className="w-full mt-6 space-y-2 text-sm">
                   {user.location && (
                     <div className="flex items-center text-muted-foreground">
-                      <MapPinIcon className="size-4 mr-2" />
+                      <MapPinIcon className="size-4 mr-2 shrink-0" />
                       {user.location}
                     </div>
                   )}
                   {user.website && (
                     <div className="flex items-center text-muted-foreground">
-                      <LinkIcon className="size-4 mr-2" />
+                      <LinkIcon className="size-4 mr-2 shrink-0" />
                       <a
                         href={
-                          user.website.startsWith("http") ? user.website : `https://${user.website}`
+                          user.website.startsWith("http")
+                            ? user.website
+                            : `https://${user.website}`
                         }
-                        className="hover:underline"
+                        className="hover:underline truncate"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -171,7 +466,7 @@ function ProfilePageClient({
                     </div>
                   )}
                   <div className="flex items-center text-muted-foreground">
-                    <CalendarIcon className="size-4 mr-2" />
+                    <CalendarIcon className="size-4 mr-2 shrink-0" />
                     Joined {formattedDate}
                   </div>
                 </div>
@@ -180,20 +475,19 @@ function ProfilePageClient({
           </Card>
         </div>
 
+        {/* Posts / Likes Tabs */}
         <Tabs defaultValue="posts" className="w-full">
           <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
             <TabsTrigger
               value="posts"
-              className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary
-               data-[state=active]:bg-transparent px-6 font-semibold"
+              className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 font-semibold"
             >
               <FileTextIcon className="size-4" />
               Posts
             </TabsTrigger>
             <TabsTrigger
               value="likes"
-              className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary
-               data-[state=active]:bg-transparent px-6 font-semibold"
+              className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 font-semibold"
             >
               <HeartIcon className="size-4" />
               Likes
@@ -203,7 +497,9 @@ function ProfilePageClient({
           <TabsContent value="posts" className="mt-6">
             <div className="space-y-6">
               {posts.length > 0 ? (
-                posts.map((post) => <PostCard key={post.id} post={post} dbUserId={user.id} />)
+                posts.map((post) => (
+                  <PostCard key={post.id} post={post} dbUserId={user.id} />
+                ))
               ) : (
                 <div className="text-center py-8 text-muted-foreground">No posts yet</div>
               )}
@@ -213,68 +509,23 @@ function ProfilePageClient({
           <TabsContent value="likes" className="mt-6">
             <div className="space-y-6">
               {likedPosts.length > 0 ? (
-                likedPosts.map((post) => <PostCard key={post.id} post={post} dbUserId={user.id} />)
+                likedPosts.map((post) => (
+                  <PostCard key={post.id} post={post} dbUserId={user.id} />
+                ))
               ) : (
-                <div className="text-center py-8 text-muted-foreground">No liked posts to show</div>
+                <div className="text-center py-8 text-muted-foreground">
+                  No liked posts to show
+                </div>
               )}
             </div>
           </TabsContent>
         </Tabs>
-
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Edit Profile</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input
-                  name="name"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  placeholder="Your name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Bio</Label>
-                <Textarea
-                  name="bio"
-                  value={editForm.bio}
-                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                  className="min-h-[100px]"
-                  placeholder="Tell us about yourself"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <Input
-                  name="location"
-                  value={editForm.location}
-                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                  placeholder="Where are you based?"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Website</Label>
-                <Input
-                  name="website"
-                  value={editForm.website}
-                  onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
-                  placeholder="Your personal website"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3">
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleEditSubmit}>Save Changes</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Edit Profile Dialog — rendered separately to avoid re-rendering the profile card */}
+      <EditDialog user={user} open={showEditDialog} onClose={closeEdit} />
     </div>
   );
 }
+
 export default ProfilePageClient;

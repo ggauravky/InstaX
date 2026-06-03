@@ -1,10 +1,10 @@
 import { currentUser } from "@clerk/nextjs/server";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "./ui/button";
 import { getUserByClerkId } from "@/actions/user.action";
 import Link from "next/link";
-import { Avatar, AvatarImage } from "./ui/avatar";
 import { Separator } from "./ui/separator";
 import { LinkIcon, MapPinIcon } from "lucide-react";
 
@@ -24,9 +24,17 @@ async function Sidebar() {
               href={`/profile/${user.username}`}
               className="flex flex-col items-center justify-center"
             >
-              <Avatar className="w-20 h-20 border-2 ">
-                <AvatarImage src={user.image || "/avatar.png"} />
-              </Avatar>
+              {/* Priority: sidebar avatar is above the fold — eager load */}
+              <div className="relative w-20 h-20 overflow-hidden rounded-full border-2 border-border/40">
+                <Image
+                  src={user.image || "/avatar.png"}
+                  alt={user.name ?? user.username}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                  priority
+                />
+              </div>
 
               <div className="mt-4 space-y-1">
                 <h3 className="font-semibold">{user.name}</h3>
@@ -60,7 +68,12 @@ async function Sidebar() {
               <div className="flex items-center text-muted-foreground">
                 <LinkIcon className="w-4 h-4 mr-2 shrink-0" />
                 {user.website ? (
-                  <a href={`${user.website}`} className="hover:underline truncate" target="_blank">
+                  <a
+                    href={`${user.website}`}
+                    className="hover:underline truncate"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     {user.website}
                   </a>
                 ) : (

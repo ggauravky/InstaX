@@ -232,3 +232,67 @@ export async function checkUsernameAvailability(
 
   return { available: !existing };
 }
+
+export async function getProfileFollowers(targetUserId: string) {
+  try {
+    const currentUserId = await getDbUserId();
+    if (!currentUserId || currentUserId !== targetUserId) {
+      throw new Error("Unauthorized access to followers list");
+    }
+
+    const followers = await prisma.follows.findMany({
+      where: { followingId: targetUserId },
+      select: {
+        follower: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            image: true,
+            bio: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return followers.map((f) => f.follower);
+  } catch (error) {
+    console.error("Error in getProfileFollowers:", error);
+    throw new Error("Failed to fetch followers list");
+  }
+}
+
+export async function getProfileFollowing(targetUserId: string) {
+  try {
+    const currentUserId = await getDbUserId();
+    if (!currentUserId || currentUserId !== targetUserId) {
+      throw new Error("Unauthorized access to following list");
+    }
+
+    const following = await prisma.follows.findMany({
+      where: { followerId: targetUserId },
+      select: {
+        following: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            image: true,
+            bio: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return following.map((f) => f.following);
+  } catch (error) {
+    console.error("Error in getProfileFollowing:", error);
+    throw new Error("Failed to fetch following list");
+  }
+}

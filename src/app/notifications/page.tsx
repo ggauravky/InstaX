@@ -3,8 +3,17 @@ import { getNotifications } from "@/actions/notification.action";
 import { NotificationsSkeleton } from "@/components/NotificationSkeleton";
 import { Suspense } from "react";
 import { NotificationsClient } from "./NotificationsClient";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Notifications",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 // This is a Server Component — no "use client" directive
 async function NotificationsPage() {

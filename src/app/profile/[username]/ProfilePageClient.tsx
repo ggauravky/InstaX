@@ -6,6 +6,7 @@ import { validateUsernameFormat } from "@/lib/username";
 import { toggleFollow } from "@/actions/user.action";
 import PostCard from "@/components/PostCard";
 import Image from "next/image";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -371,17 +372,10 @@ function ProfilePageClient({
           <Card className="bg-card">
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center">
-                {/* Profile Avatar — priority since it's above the fold */}
-                <div className="relative w-24 h-24 overflow-hidden rounded-full ring-2 ring-border/40">
-                  <Image
-                    src={user.image ?? "/avatar.png"}
-                    alt={user.name ?? user.username}
-                    fill
-                    sizes="96px"
-                    className="object-cover"
-                    priority
-                  />
-                </div>
+                {/* Profile Avatar */}
+                <Avatar className="w-24 h-24 ring-2 ring-border/40">
+                  <AvatarImage src={user.image ?? "/avatar.png"} />
+                </Avatar>
 
                 <h1 className="mt-4 text-2xl font-bold">{user.name ?? user.username}</h1>
                 <p className="text-muted-foreground">@{user.username}</p>

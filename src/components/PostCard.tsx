@@ -6,6 +6,7 @@ import Image from "next/image";
 import { memo, useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { Card, CardContent } from "./ui/card";
+import { Avatar, AvatarImage } from "./ui/avatar";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { DeleteAlertDialog } from "./DeleteAlertDialog";
@@ -21,7 +22,6 @@ interface PostCardProps {
   dbUserId: string | null;
 }
 
-// Wrapped in React.memo — prevents re-renders when unrelated posts change
 const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
   const { user } = useUser();
   const [newComment, setNewComment] = useState("");
@@ -34,7 +34,6 @@ const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
   const [optimisticLikes, setOptimisticLikes] = useState(post._count.likes);
   const [showComments, setShowComments] = useState(false);
 
-  // useCallback prevents new function references on every render
   const handleLike = useCallback(async () => {
     if (isLiking) return;
     try {
@@ -43,7 +42,6 @@ const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
       setOptimisticLikes((prev) => prev + (hasLiked ? -1 : 1));
       await toggleLike(post.id);
     } catch {
-      // Revert optimistic update on failure
       setOptimisticLikes(post._count.likes);
       setHasLiked(post.likes.some((like) => like.userId === dbUserId));
     } finally {
@@ -83,30 +81,20 @@ const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
     }
   }, [isDeleting, post.id]);
 
-  const toggleComments = useCallback(
-    () => setShowComments((prev) => !prev),
-    []
-  );
+  const toggleComments = useCallback(() => setShowComments((prev) => !prev), []);
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-4 sm:p-6">
         <div className="space-y-4">
           <div className="flex space-x-3 sm:space-x-4">
+            {/* Author avatar — use AvatarImage (plain img) so Clerk URLs work */}
             <Link href={`/profile/${post.author.username}`} prefetch={false}>
-              <div className="relative size-8 sm:size-10 shrink-0 overflow-hidden rounded-full">
-                <Image
-                  src={post.author.image ?? "/avatar.png"}
-                  alt={post.author.name ?? post.author.username}
-                  fill
-                  sizes="40px"
-                  className="object-cover"
-                  loading="lazy"
-                />
-              </div>
+              <Avatar className="size-8 sm:size-10">
+                <AvatarImage src={post.author.image ?? "/avatar.png"} />
+              </Avatar>
             </Link>
 
-            {/* POST HEADER & TEXT CONTENT */}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 truncate">
@@ -127,17 +115,14 @@ const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
                 </div>
 
                 {dbUserId === post.author.id && (
-                  <DeleteAlertDialog
-                    isDeleting={isDeleting}
-                    onDelete={handleDeletePost}
-                  />
+                  <DeleteAlertDialog isDeleting={isDeleting} onDelete={handleDeletePost} />
                 )}
               </div>
               <p className="mt-2 text-sm text-foreground break-words">{post.content}</p>
             </div>
           </div>
 
-          {/* POST IMAGE — lazy loaded with next/image */}
+          {/* POST IMAGE — next/image for UploadThing CDN (works perfectly) */}
           {post.image && (
             <div className="relative w-full overflow-hidden rounded-lg" style={{ aspectRatio: "16/9" }}>
               <Image
@@ -193,16 +178,10 @@ const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
               <div className="space-y-4">
                 {post.comments.map((comment) => (
                   <div key={comment.id} className="flex space-x-3">
-                    <div className="relative size-8 shrink-0 overflow-hidden rounded-full">
-                      <Image
-                        src={comment.author.image ?? "/avatar.png"}
-                        alt={comment.author.name ?? comment.author.username}
-                        fill
-                        sizes="32px"
-                        className="object-cover"
-                        loading="lazy"
-                      />
-                    </div>
+                    {/* Comment author avatar — AvatarImage (plain img) */}
+                    <Avatar className="size-8 flex-shrink-0">
+                      <AvatarImage src={comment.author.image ?? "/avatar.png"} />
+                    </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="font-medium text-sm">{comment.author.name}</span>
@@ -222,16 +201,10 @@ const PostCard = memo(function PostCard({ post, dbUserId }: PostCardProps) {
 
               {user ? (
                 <div className="flex space-x-3">
-                  <div className="relative size-8 shrink-0 overflow-hidden rounded-full">
-                    <Image
-                      src={user.imageUrl || "/avatar.png"}
-                      alt={user.username ?? "You"}
-                      fill
-                      sizes="32px"
-                      className="object-cover"
-                      loading="lazy"
-                    />
-                  </div>
+                  {/* Current user avatar — AvatarImage */}
+                  <Avatar className="size-8 flex-shrink-0">
+                    <AvatarImage src={user.imageUrl || "/avatar.png"} />
+                  </Avatar>
                   <div className="flex-1">
                     <Textarea
                       placeholder="Write a comment..."

@@ -1,7 +1,7 @@
 import { getRandomUsers } from "@/actions/user.action";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import Link from "next/link";
-import Image from "next/image";
+import { Avatar, AvatarImage } from "./ui/avatar";
 import FollowButton from "./FollowButton";
 
 async function WhoToFollow() {
@@ -20,16 +20,9 @@ async function WhoToFollow() {
             <div key={user.id} className="flex gap-2 items-center justify-between">
               <div className="flex items-center gap-2">
                 <Link href={`/profile/${user.username}`} prefetch={false}>
-                  <div className="relative size-9 overflow-hidden rounded-full">
-                    <Image
-                      src={user.image ?? "/avatar.png"}
-                      alt={user.name ?? user.username}
-                      fill
-                      sizes="36px"
-                      className="object-cover"
-                      loading="lazy"
-                    />
-                  </div>
+                  <Avatar>
+                    <AvatarImage src={user.image ?? "/avatar.png"} />
+                  </Avatar>
                 </Link>
                 <div className="text-xs">
                   <Link

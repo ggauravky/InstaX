@@ -1,5 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
-import Image from "next/image";
+import { Avatar, AvatarImage } from "./ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "./ui/button";
@@ -25,16 +25,9 @@ async function Sidebar() {
               className="flex flex-col items-center justify-center"
             >
               {/* Priority: sidebar avatar is above the fold — eager load */}
-              <div className="relative w-20 h-20 overflow-hidden rounded-full border-2 border-border/40">
-                <Image
-                  src={user.image || "/avatar.png"}
-                  alt={user.name ?? user.username}
-                  fill
-                  sizes="80px"
-                  className="object-cover"
-                  priority
-                />
-              </div>
+              <Avatar className="w-20 h-20 border-2 border-border/40">
+                <AvatarImage src={user.image || "/avatar.png"} />
+              </Avatar>
 
               <div className="mt-4 space-y-1">
                 <h3 className="font-semibold">{user.name}</h3>

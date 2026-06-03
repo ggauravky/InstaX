@@ -3,7 +3,7 @@
 import { markNotificationsAsRead } from "@/actions/notification.action";
 import { getNotifications } from "@/actions/notification.action";
 import Image from "next/image";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
@@ -70,16 +70,11 @@ export function NotificationsClient({ notifications }: NotificationsClientProps)
                     !notification.read ? "bg-muted/50" : ""
                   }`}
                 >
-                  <div className="relative mt-1 size-10 shrink-0 overflow-hidden rounded-full">
-                    <Image
+                  <Avatar className="mt-1 shrink-0">
+                    <AvatarImage
                       src={notification.creator.image ?? "/avatar.png"}
-                      alt={notification.creator.name ?? notification.creator.username}
-                      fill
-                      sizes="40px"
-                      className="object-cover"
-                      loading="lazy"
                     />
-                  </div>
+                  </Avatar>
 
                   <div className="flex-1 space-y-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

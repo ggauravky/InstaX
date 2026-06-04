@@ -296,3 +296,73 @@ export async function getProfileFollowing(targetUserId: string) {
     throw new Error("Failed to fetch following list");
   }
 }
+
+export async function searchUsers(query: string) {
+  try {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: trimmed, mode: "insensitive" } },
+          { username: { contains: trimmed, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        image: true,
+        bio: true,
+        _count: {
+          select: {
+            followers: true,
+            following: true,
+          },
+        },
+      },
+      take: 12,
+    });
+
+    return users;
+  } catch (error) {
+    console.error("Error in searchUsers:", error);
+    throw new Error("Failed to search users");
+  }
+}
+
+export async function getRecommendedCreators() {
+  try {
+    const currentUserId = await getDbUserId();
+
+    const users = await prisma.user.findMany({
+      where: {
+        NOT: { id: currentUserId || "" },
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        image: true,
+        bio: true,
+        _count: {
+          select: {
+            followers: true,
+          },
+        },
+      },
+      orderBy: {
+        followers: {
+          _count: "desc",
+        },
+      },
+      take: 5,
+    });
+
+    return users;
+  } catch (error) {
+    console.error("Error in getRecommendedCreators:", error);
+    throw new Error("Failed to fetch recommended creators");
+  }
+}

@@ -9,6 +9,7 @@ import {
   SunIcon,
   UserIcon,
   LogInIcon,
+  Compass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -54,6 +55,13 @@ function MobileNavbar({ dbUsername }: MobileNavbarProps) {
               <Link href="/">
                 <HomeIcon className="w-4 h-4" />
                 Home
+              </Link>
+            </Button>
+
+            <Button variant="ghost" className="flex items-center gap-3 justify-start" asChild>
+              <Link href="/explore" onClick={() => setShowMobileMenu(false)}>
+                <Compass className="w-4 h-4" />
+                Explore
               </Link>
             </Button>
 

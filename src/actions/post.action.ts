@@ -169,3 +169,71 @@ export async function deletePost(postId: string) {
     return { success: false, error: "Failed to delete post" };
   }
 }
+
+export async function getPostById(postId: string) {
+  try {
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        author: {
+          select: { id: true, name: true, image: true, username: true },
+        },
+        comments: {
+          include: {
+            author: {
+              select: { id: true, username: true, image: true, name: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        likes: {
+          select: { userId: true },
+        },
+        _count: {
+          select: { likes: true, comments: true },
+        },
+      },
+    });
+
+    return post;
+  } catch (error) {
+    console.error("Error in getPostById", error);
+    throw new Error("Failed to fetch post");
+  }
+}
+
+export async function getTrendingPosts() {
+  try {
+    const posts = await prisma.post.findMany({
+      orderBy: [
+        { likes: { _count: "desc" } },
+        { createdAt: "desc" },
+      ],
+      take: 6,
+      include: {
+        author: {
+          select: { id: true, name: true, image: true, username: true },
+        },
+        comments: {
+          include: {
+            author: {
+              select: { id: true, username: true, image: true, name: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        likes: {
+          select: { userId: true },
+        },
+        _count: {
+          select: { likes: true, comments: true },
+        },
+      },
+    });
+
+    return posts;
+  } catch (error) {
+    console.error("Error in getTrendingPosts", error);
+    throw new Error("Failed to fetch trending posts");
+  }
+}

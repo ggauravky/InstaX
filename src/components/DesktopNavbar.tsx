@@ -1,4 +1,4 @@
-import { BellIcon, HomeIcon, UserIcon, LogInIcon } from "lucide-react";
+import { BellIcon, HomeIcon, UserIcon, LogInIcon, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { SignInButton, UserButton } from "@clerk/nextjs";
@@ -20,6 +20,13 @@ async function DesktopNavbar({ dbUsername }: DesktopNavbarProps) {
         <Link href="/">
           <HomeIcon className="w-4 h-4" />
           <span className="hidden lg:inline">Home</span>
+        </Link>
+      </Button>
+
+      <Button variant="ghost" className="flex items-center gap-2" asChild>
+        <Link href="/explore">
+          <Compass className="w-4 h-4" />
+          <span className="hidden lg:inline">Explore</span>
         </Link>
       </Button>
 

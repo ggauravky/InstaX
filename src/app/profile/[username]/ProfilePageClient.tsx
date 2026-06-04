@@ -43,10 +43,30 @@ import {
   Search,
   Users,
   ChevronRight,
+  Share2,
+  Link2,
 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+
+const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={props.className} style={props.style}>
+    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.423.002 9.835-4.407 9.838-9.83.001-2.628-1.01-5.1-2.846-6.938C16.427 1.993 13.971 1.01 11.83 1.01c-5.425 0-9.836 4.407-9.838 9.83-.001 2.056.541 4.062 1.572 5.83l-.974 3.56 3.654-.958zm12.188-6.195c-.328-.164-1.942-.958-2.242-1.069-.3-.11-.518-.164-.736.164-.218.328-.847 1.069-1.037 1.288-.19.218-.38.246-.708.082-.328-.164-1.386-.511-2.64-1.63-1.002-.893-1.678-1.996-1.875-2.324-.197-.328-.02-.505.144-.668.148-.147.328-.383.492-.574.164-.19.219-.328.328-.547.11-.219.055-.41-.027-.574-.082-.164-.736-1.776-1.009-2.432-.266-.649-.538-.562-.736-.572-.19-.01-.41-.01-.628-.01-.218 0-.573.082-.873.41-.3.328-1.147 1.12-1.147 2.73s1.174 3.167 1.338 3.385c.164.219 2.31 3.52 5.597 4.937.781.337 1.39.539 1.865.69.785.25 1.5.214 2.065.13.63-.092 1.942-.793 2.215-1.558.272-.765.272-1.422.19-1.557-.081-.137-.3-.219-.628-.383z" />
+  </svg>
+);
+
+const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={props.className} style={props.style}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const LinkedInIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={props.className} style={props.style}>
+    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+  </svg>
+);
 
 type User = Awaited<ReturnType<typeof getProfileByUsername>>;
 type Posts = Awaited<ReturnType<typeof getUserPosts>>;
@@ -344,6 +364,97 @@ function ProfilePageClient({
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isUpdatingFollow, setIsUpdatingFollow] = useState(false);
   const [followModalType, setFollowModalType] = useState<"followers" | "following" | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  const handleShareClick = useCallback(() => {
+    setShowShareModal(true);
+  }, []);
+
+  const getProfileUrl = useCallback(() => {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/profile/${user.username}`;
+    }
+    return `https://instax-g.vercel.app/profile/${user.username}`;
+  }, [user.username]);
+
+  const fallbackCopyText = useCallback((text: string) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+      if (successful) {
+        toast.success("Profile link copied successfully");
+      } else {
+        toast.error("Failed to copy profile link");
+      }
+    } catch (err) {
+      console.error("Fallback copy failed", err);
+      toast.error("Failed to copy profile link");
+    }
+    setShowShareModal(false);
+  }, []);
+
+  const handleCopyLink = useCallback(() => {
+    const url = getProfileUrl();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          toast.success("Profile link copied successfully");
+          setShowShareModal(false);
+        })
+        .catch((err) => {
+          console.error("Failed to copy using clipboard API", err);
+          fallbackCopyText(url);
+        });
+    } else {
+      fallbackCopyText(url);
+    }
+  }, [getProfileUrl, fallbackCopyText]);
+
+  const handleWhatsAppShare = useCallback(() => {
+    const url = encodeURIComponent(getProfileUrl());
+    const text = encodeURIComponent(`Check out ${user.name || user.username}'s profile on InstaX: `);
+    window.open(`https://api.whatsapp.com/send?text=${text}${url}`, "_blank");
+    setShowShareModal(false);
+  }, [user.username, user.name, getProfileUrl]);
+
+  const handleTwitterShare = useCallback(() => {
+    const url = encodeURIComponent(getProfileUrl());
+    const text = encodeURIComponent(`Check out ${user.name || user.username}'s profile on InstaX!`);
+    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, "_blank");
+    setShowShareModal(false);
+  }, [user.username, user.name, getProfileUrl]);
+
+  const handleLinkedInShare = useCallback(() => {
+    const url = encodeURIComponent(getProfileUrl());
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, "_blank");
+    setShowShareModal(false);
+  }, [user.username, getProfileUrl]);
+
+  const isMobileShareSupported = () => {
+    return typeof navigator !== "undefined" && typeof navigator.share === "function";
+  };
+
+  const handleNativeShare = useCallback(async () => {
+    const url = getProfileUrl();
+    const title = `${user.name || user.username} (@${user.username}) | InstaX`;
+    const text = `Check out ${user.name || user.username}'s profile on InstaX`;
+    try {
+      await navigator.share({
+        title,
+        text,
+        url,
+      });
+      setShowShareModal(false);
+    } catch (err) {
+      console.error("Native share failed", err);
+    }
+  }, [user.username, user.name, getProfileUrl]);
 
   const openFollowModal = useCallback(
     (type: "followers" | "following") => {
@@ -437,32 +548,44 @@ function ProfilePageClient({
                   </div>
                 </div>
 
-                {/* FOLLOW / EDIT PROFILE BUTTONS */}
-                {!currentUser ? (
-                  <SignInButton mode="modal">
-                    <Button className="w-full mt-4">Follow</Button>
-                  </SignInButton>
-                ) : isOwnProfile ? (
-                  <Button className="w-full mt-4" onClick={openEdit}>
-                    <EditIcon className="size-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                ) : (
+                {/* FOLLOW / EDIT PROFILE / SHARE BUTTONS */}
+                <div className="flex gap-2 w-full mt-4">
+                  {!currentUser ? (
+                    <SignInButton mode="modal">
+                      <Button className="flex-1">Follow</Button>
+                    </SignInButton>
+                  ) : isOwnProfile ? (
+                    <Button className="flex-1" onClick={openEdit}>
+                      <EditIcon className="size-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                  ) : (
+                    <Button
+                      className="flex-1"
+                      onClick={handleFollow}
+                      disabled={isUpdatingFollow}
+                      variant={isFollowing ? "outline" : "default"}
+                    >
+                      {isUpdatingFollow ? (
+                        <Loader2Icon className="size-4 animate-spin" />
+                      ) : isFollowing ? (
+                        "Unfollow"
+                      ) : (
+                        "Follow"
+                      )}
+                    </Button>
+                  )}
+
                   <Button
-                    className="w-full mt-4"
-                    onClick={handleFollow}
-                    disabled={isUpdatingFollow}
-                    variant={isFollowing ? "outline" : "default"}
+                    variant="outline"
+                    size="icon"
+                    onClick={handleShareClick}
+                    className="shrink-0 hover:bg-accent/40 active:scale-95 transition-all"
+                    aria-label="Share Profile"
                   >
-                    {isUpdatingFollow ? (
-                      <Loader2Icon className="size-4 animate-spin" />
-                    ) : isFollowing ? (
-                      "Unfollow"
-                    ) : (
-                      "Follow"
-                    )}
+                    <Share2 className="size-4" />
                   </Button>
-                )}
+                </div>
 
                 {/* LOCATION & WEBSITE */}
                 <div className="w-full mt-6 space-y-2 text-sm">
@@ -555,6 +678,93 @@ function ProfilePageClient({
         type={followModalType}
         onClose={closeFollowModal}
       />
+
+      {/* Share Profile Dialog */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="w-[95%] sm:max-w-md bg-background/95 backdrop-blur-md border-border/40 p-6 flex flex-col gap-6">
+          <DialogHeader>
+            <DialogTitle className="text-center font-bold text-xl">Share Profile</DialogTitle>
+          </DialogHeader>
+
+          {/* Profile Preview Card */}
+          <div className="flex flex-col items-center text-center p-4 rounded-xl border border-border/10 bg-muted/20 animate-in fade-in duration-200">
+            <Avatar className="w-16 h-16 border border-border/20">
+              <AvatarImage src={user.image ?? "/avatar.png"} />
+            </Avatar>
+            <h3 className="mt-3 font-bold text-base text-foreground">{user.name ?? user.username}</h3>
+            <p className="text-xs text-muted-foreground">@{user.username}</p>
+            {user.bio && (
+              <p className="mt-2 text-xs text-muted-foreground/90 line-clamp-2 max-w-[280px]">
+                {user.bio}
+              </p>
+            )}
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground/75 font-semibold mt-3 pt-2 border-t border-border/5 w-full justify-center">
+              <span>{user._count.followers.toLocaleString()} followers</span>
+              <span>•</span>
+              <span>{user._count.posts.toLocaleString()} posts</span>
+            </div>
+          </div>
+
+          {/* Options Grid */}
+          <div className="grid grid-cols-4 gap-4 text-center">
+            {/* Copy Link */}
+            <button
+              onClick={handleCopyLink}
+              className="flex flex-col items-center gap-2 group focus:outline-none"
+            >
+              <div className="size-12 rounded-full bg-secondary flex items-center justify-center transition-all group-hover:bg-secondary/80 group-hover:scale-105 active:scale-95">
+                <Link2 className="size-5 text-secondary-foreground" />
+              </div>
+              <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">Copy Link</span>
+            </button>
+
+            {/* WhatsApp */}
+            <button
+              onClick={handleWhatsAppShare}
+              className="flex flex-col items-center gap-2 group focus:outline-none"
+            >
+              <div className="size-12 rounded-full bg-[#25D366]/10 flex items-center justify-center transition-all group-hover:bg-[#25D366]/20 group-hover:scale-105 active:scale-95">
+                <WhatsAppIcon className="size-5 text-[#25D366]" />
+              </div>
+              <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">WhatsApp</span>
+            </button>
+
+            {/* Twitter/X */}
+            <button
+              onClick={handleTwitterShare}
+              className="flex flex-col items-center gap-2 group focus:outline-none"
+            >
+              <div className="size-12 rounded-full bg-foreground/10 flex items-center justify-center transition-all group-hover:bg-foreground/20 group-hover:scale-105 active:scale-95">
+                <XIcon className="size-5 text-foreground" />
+              </div>
+              <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">Twitter / X</span>
+            </button>
+
+            {/* LinkedIn */}
+            <button
+              onClick={handleLinkedInShare}
+              className="flex flex-col items-center gap-2 group focus:outline-none"
+            >
+              <div className="size-12 rounded-full bg-[#0A66C2]/10 flex items-center justify-center transition-all group-hover:bg-[#0A66C2]/20 group-hover:scale-105 active:scale-95">
+                <LinkedInIcon className="size-5 text-[#0A66C2]" />
+              </div>
+              <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">LinkedIn</span>
+            </button>
+          </div>
+
+          {isMobileShareSupported() && (
+            <div className="pt-2 border-t border-border/40 animate-in fade-in duration-300">
+              <Button
+                onClick={handleNativeShare}
+                className="w-full bg-primary hover:bg-primary/95 text-primary-foreground gap-2 flex items-center justify-center py-2.5 rounded-lg font-semibold text-sm"
+              >
+                <Share2 className="size-4" />
+                Share via system...
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

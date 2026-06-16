@@ -3,7 +3,6 @@ import { getDbUserId } from "@/actions/user.action";
 import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
 import WhoToFollow from "@/components/WhoToFollow";
-import UnauthLanding from "@/components/UnauthLanding";
 import { currentUser } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 
@@ -50,18 +49,19 @@ export default async function Home() {
       {
         "@type": "WebSite",
         "@id": "https://instax-g.vercel.app/#website",
-        "url": "https://instax-g.vercel.app/",
-        "name": "InstaX",
-        "description": "Premium Next.js Social Media Platform",
-        "publisher": {
+        url: "https://instax-g.vercel.app/",
+        name: "InstaX",
+        description: "Premium Next.js Social Media Platform",
+        publisher: {
           "@id": "https://ggauravky.vercel.app/#person",
         },
-        "potentialAction": [
+        potentialAction: [
           {
             "@type": "SearchAction",
-            "target": {
+            target: {
               "@type": "EntryPoint",
-              "urlTemplate": "https://instax-g.vercel.app/profile?search={search_term_string}",
+              urlTemplate:
+                "https://instax-g.vercel.app/profile?search={search_term_string}",
             },
             "query-input": "required name=search_term_string",
           },
@@ -70,29 +70,33 @@ export default async function Home() {
       {
         "@type": "SoftwareApplication",
         "@id": "https://instax-g.vercel.app/#software",
-        "name": "InstaX",
-        "url": "https://instax-g.vercel.app/",
-        "applicationCategory": "SocialNetworkingApplication",
-        "operatingSystem": "All",
-        "screenshot": "https://instax-g.vercel.app/social-preview.svg",
-        "softwareVersion": "1.0.0",
-        "offers": {
+        name: "InstaX",
+        url: "https://instax-g.vercel.app/",
+        applicationCategory: "SocialNetworkingApplication",
+        operatingSystem: "All",
+        screenshot: "https://instax-g.vercel.app/social-preview.svg",
+        softwareVersion: "1.0.0",
+        offers: {
           "@type": "Offer",
-          "price": "0.00",
-          "priceCurrency": "USD",
+          price: "0.00",
+          priceCurrency: "USD",
         },
-        "author": {
+        author: {
           "@id": "https://ggauravky.vercel.app/#person",
         },
       },
       {
         "@type": "Person",
         "@id": "https://ggauravky.vercel.app/#person",
-        "name": "Gaurav Kumar Yadav",
-        "url": "https://ggauravky.vercel.app",
-        "sameAs": ["https://github.com/ggauravky", "https://linkedin.com/in/gauravky"],
-        "jobTitle": "Full-Stack Web Developer",
-        "description": "Senior Open Source Maintainer and Developer of InstaX.",
+        name: "Gaurav Kumar Yadav",
+        url: "https://ggauravky.vercel.app",
+        sameAs: [
+          "https://github.com/ggauravky",
+          "https://linkedin.com/in/gauravky",
+        ],
+        jobTitle: "Full-Stack Web Developer",
+        description:
+          "Senior Open Source Maintainer and Developer of InstaX.",
       },
     ],
   };
@@ -103,20 +107,22 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
         <div className="lg:col-span-6">
-          {user ? (
-            <>
-              <CreatePost />
-              <div className="space-y-6">
-                {posts.map((post) => (
-                  <PostCard key={post.id} post={post} dbUserId={dbUserId} />
-                ))}
-              </div>
-            </>
-          ) : (
-            <UnauthLanding />
-          )}
+          {/* Show Create Post only to logged-in users */}
+          {user && <CreatePost />}
+
+          {/* Public Feed */}
+          <div className="space-y-6">
+            {posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                dbUserId={dbUserId}
+              />
+            ))}
+          </div>
         </div>
 
         <div className="hidden lg:block lg:col-span-4 sticky top-20">
